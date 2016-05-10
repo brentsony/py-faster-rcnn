@@ -39,7 +39,6 @@ class pascal_voc(imdb):
         , 'snake'
         , 'sheep'
         , 'zebra'
-        , 'flower'
         , 'person'
         , 'airplane'
         , 'bicycle'
@@ -50,7 +49,6 @@ class pascal_voc(imdb):
         , 'motorcycle'
         , 'train'
         , 'truck'
-        , 'water'
         , 'wine bottle'
         )
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
