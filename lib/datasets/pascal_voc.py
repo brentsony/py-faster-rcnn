@@ -27,12 +27,32 @@ class pascal_voc(imdb):
         self._devkit_path = self._get_default_path() if devkit_path is None \
                             else devkit_path
         self._data_path = os.path.join(self._devkit_path, 'VOC' + self._year)
-        self._classes = ('__background__', # always index 0
-                         'aeroplane', 'bicycle', 'bird', 'boat',
-                         'bottle', 'bus', 'car', 'cat', 'chair',
-                         'cow', 'diningtable', 'dog', 'horse',
-                         'motorbike', 'person', 'pottedplant',
-                         'sheep', 'sofa', 'train', 'tvmonitor')
+        self._classes = ('__background__'   # always index 0
+        , 'bear'
+        , 'bird'
+        , 'cat'
+        , 'dog'
+        , 'cow'
+        , 'elephant'
+        , 'giraffe'
+        , 'horse'
+        , 'snake'
+        , 'sheep'
+        , 'zebra'
+        , 'flower'
+        , 'person'
+        , 'airplane'
+        , 'bicycle'
+        , 'boat'
+        , 'bus'
+        , 'car'
+        , 'golf cart'
+        , 'motorcycle'
+        , 'train'
+        , 'truck'
+        , 'water'
+        , 'wine bottle'
+        )
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_ext = '.jpg'
         self._image_index = self._load_image_set_index()
@@ -187,8 +207,7 @@ class pascal_voc(imdb):
         objs = tree.findall('object')
         if not self.config['use_diff']:
             # Exclude the samples labeled as difficult
-            non_diff_objs = [
-                obj for obj in objs if int(obj.find('difficult').text) == 0]
+            non_diff_objs = [ obj for obj in objs if int(obj.find('difficult').text) == 0 ]
             # if len(non_diff_objs) != len(objs):
             #     print 'Removed {} difficult objects'.format(
             #         len(objs) - len(non_diff_objs))

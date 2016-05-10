@@ -103,9 +103,12 @@ class imdb(object):
         num_images = self.num_images
         widths = self._get_widths()
         for i in xrange(num_images):
+            print "=== Processing Image: %s", (self.image_path_at(i))
+            print "Made it here 1"
             boxes = self.roidb[i]['boxes'].copy()
             oldx1 = boxes[:, 0].copy()
             oldx2 = boxes[:, 2].copy()
+            print "Made it here 2"
             boxes[:, 0] = widths[i] - oldx2 - 1
             boxes[:, 2] = widths[i] - oldx1 - 1
             assert (boxes[:, 2] >= boxes[:, 0]).all()
@@ -113,6 +116,7 @@ class imdb(object):
                      'gt_overlaps' : self.roidb[i]['gt_overlaps'],
                      'gt_classes' : self.roidb[i]['gt_classes'],
                      'flipped' : True}
+            print "Calling roidb.append(entry)"
             self.roidb.append(entry)
         self._image_index = self._image_index * 2
 
