@@ -207,7 +207,7 @@ class pascal_voc(imdb):
         objs = tree.findall('object')
         if not self.config['use_diff']:
             # Exclude the samples labeled as difficult
-            non_diff_objs = [ obj for obj in objs if int(obj.find('difficult').text) == 0 ]
+            non_diff_objs = [ obj for obj in objs if obj.find('difficult') == None or int(obj.find('difficult').text) == 0 ]
             # if len(non_diff_objs) != len(objs):
             #     print 'Removed {} difficult objects'.format(
             #         len(objs) - len(non_diff_objs))
