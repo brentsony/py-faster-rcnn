@@ -104,7 +104,7 @@ class imdb(object):
         print "=== Processing %d images ===" % num_images
         widths = self._get_widths()
         for i in xrange(num_images):
-            print '===  {0} {1:.0f}%) Processing Image: {2}'.format(i, (100.0*i/num_images), self.image_path_at(i).split("/JPEGImages/", 1))
+           # print '===  {0} {1:.0f}%) Processing Image: {2}'.format(i, (100.0*i/num_images), self.image_path_at(i).split("/JPEGImages/", 1))
             boxes = self.roidb[i]['boxes'].copy()
             oldx1 = boxes[:, 0].copy()
             oldx2 = boxes[:, 2].copy()
