@@ -26,21 +26,21 @@ import argparse
 
 CLASSES = ('__background__',
            'animal:bear', 'animal:bird', 'animal:cat', 'animal:dog',
-		   'animal:cow', 'animal:elephant', 'animal:giraffe', 'animal:horse',
-		   'animal:snake', 'animal:sheep', 'animal:zebra', 'person',
-		   'vehicle:airplane', 'vehicle:bicycle', 'vehicle:boat', 'vehicle:bus',
-		   'vehicle:car', 'vehicle:golf cart', 'vehicle:motorcycle', 'vehicle:train',
-		   'vehicle:truck', 'winebottle')
+           'animal:cow', 'animal:elephant', 'animal:giraffe', 'animal:horse',
+           'animal:snake', 'animal:sheep', 'animal:zebra', 'person',
+           'vehicle:airplane', 'vehicle:bicycle', 'vehicle:boat', 'vehicle:bus',
+           'vehicle:car', 'vehicle:golf cart', 'vehicle:motorcycle', 'vehicle:train',
+           'vehicle:truck', 'winebottle')
 
 NETS = {'vgg16': ('VGG16',
                   'VGG16_faster_rcnn_final.caffemodel'),
         'zf': ('ZF',
-                  'ZF_faster_rcnn_final.caffemodel'),
+               'ZF_faster_rcnn_final.caffemodel'),
         'sonynet': ('SONYNET',
-                  'SONYNET_faster_rcnn_final.caffemodel')}
+                    'SONYNET_faster_rcnn_final.caffemodel')}
 
 
-def vis_detections(im, class_name, dets, thresh=0.5):
+def vis_detections (im, class_name, dets, thresh=0.5):
     """Draw detected bounding boxes."""
     inds = np.where(dets[:, -1] >= thresh)[0]
     if len(inds) == 0:
@@ -58,7 +58,7 @@ def vis_detections(im, class_name, dets, thresh=0.5):
                           bbox[2] - bbox[0],
                           bbox[3] - bbox[1], fill=False,
                           edgecolor='red', linewidth=3.5)
-            )
+        )
         ax.text(bbox[0], bbox[1] - 2,
                 '{:s} {:.3f}'.format(class_name, score),
                 bbox=dict(facecolor='blue', alpha=0.5),
@@ -67,12 +67,13 @@ def vis_detections(im, class_name, dets, thresh=0.5):
     ax.set_title(('{} detections with '
                   'p({} | box) >= {:.1f}').format(class_name, class_name,
                                                   thresh),
-                  fontsize=14)
+                 fontsize=14)
     plt.axis('off')
     plt.tight_layout()
     plt.draw()
 
-def demo(net, image_name):
+
+def demo (net, image_name):
     """Detect object classes in an image using pre-computed object proposals."""
 
     # Load the demo image
@@ -91,8 +92,8 @@ def demo(net, image_name):
     CONF_THRESH = 0.6
     NMS_THRESH = 0.3
     for cls_ind, cls in enumerate(CLASSES[1:]):
-        cls_ind += 1 # because we skipped background
-        cls_boxes = boxes[:, 4*cls_ind:4*(cls_ind + 1)]
+        cls_ind += 1  # because we skipped background
+        cls_boxes = boxes[:, 4 * cls_ind:4 * (cls_ind + 1)]
         cls_scores = scores[:, cls_ind]
         dets = np.hstack((cls_boxes,
                           cls_scores[:, np.newaxis])).astype(np.float32)
@@ -100,7 +101,8 @@ def demo(net, image_name):
         dets = dets[keep, :]
         vis_detections(im, cls, dets, thresh=CONF_THRESH)
 
-def parse_args():
+
+def parse_args ():
     """Parse input arguments."""
     parser = argparse.ArgumentParser(description='Faster R-CNN demo')
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device id to use [0]',
@@ -114,6 +116,7 @@ def parse_args():
     args = parser.parse_args()
 
     return args
+
 
 if __name__ == '__main__':
     cfg.TEST.HAS_RPN = True  # Use RPN for proposals
@@ -142,8 +145,9 @@ if __name__ == '__main__':
     # Warmup on a dummy image
     im = 128 * np.ones((300, 500, 3), dtype=np.uint8)
     for i in xrange(2):
-        _, _= im_detect(net, im)
+        _, _ = im_detect(net, im)
 
+    # TODO: use files in given dir (os.walk)
     im_names = ['000456.jpg', '000542.jpg', '001150.jpg',
                 '001763.jpg', '004545.jpg']
     for im_name in im_names:
