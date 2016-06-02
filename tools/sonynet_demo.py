@@ -32,12 +32,11 @@ CLASSES = ('__background__',
            'vehicle:car', 'vehicle:golf cart', 'vehicle:motorcycle', 'vehicle:train',
            'vehicle:truck', 'winebottle')
 
-NETS = {'vgg16': ('VGG16',
-                  'VGG16_faster_rcnn_final.caffemodel'),
-        'zf': ('ZF',
-               'ZF_faster_rcnn_final.caffemodel'),
-        'sonynet': ('SONYNET',
-                    'SONYNET_faster_rcnn_final.caffemodel')}
+NETS = {
+    'vgg16': ('VGG16', 'VGG16_faster_rcnn_final.caffemodel'),
+    'zf': ('ZF', 'ZF_faster_rcnn_final.caffemodel'),
+    'sonynet': ('SONYNET', 'SONYNET_faster_rcnn_final.caffemodel')
+}
 
 
 def vis_detections (im, class_name, dets, thresh=0.5):
@@ -73,12 +72,11 @@ def vis_detections (im, class_name, dets, thresh=0.5):
     plt.draw()
 
 
-def demo (net, image_name):
+def demo (net, imagePathName):
     """Detect object classes in an image using pre-computed object proposals."""
 
     # Load the demo image
-    im_file = os.path.join(cfg.ROOT_DIR, 'data', 'demo', image_name)
-    im = cv2.imread(im_file)
+    im = cv2.imread(imagePathName)
 
     # Detect all object classes and regress object bounds
     timer = Timer()
@@ -105,13 +103,11 @@ def demo (net, image_name):
 def parse_args ():
     """Parse input arguments."""
     parser = argparse.ArgumentParser(description='Faster R-CNN demo')
-    parser.add_argument('--gpu', dest='gpu_id', help='GPU device id to use [0]',
-                        default=1, type=int)
-    parser.add_argument('--cpu', dest='cpu_mode',
-                        help='Use CPU mode (overrides --gpu)',
-                        action='store_true')
-    parser.add_argument('--net', dest='demo_net', help='Network to use [vgg16]',
-                        choices=NETS.keys(), default='sonynet')
+    parser.add_argument('--gpu', dest='gpu', help='GPU device id to use [0]', default=1, type=int)
+    parser.add_argument('--cpu', dest='cpu_mode', help='Use CPU mode (overrides --gpu)', action='store_true')
+    parser.add_argument('--net', dest='net', help='Network to use [vgg16]', choices=NETS.keys(), default='sonynet')
+    parser.add_argument('--score', dest='testImageDir', help='score on given dir of test images', default='', type=str)
+    parser.add_argument('--demo', dest='testImageDir', help='score on given dir of test images', default='', type=str)
 
     args = parser.parse_args()
 
@@ -123,36 +119,47 @@ if __name__ == '__main__':
 
     args = parse_args()
 
-    prototxt = os.path.join(cfg.ROOT_DIR, 'models', NETS[args.demo_net][0],
+    #
+    # Caffe Setup
+    #
+    prototxt = os.path.join(cfg.ROOT_DIR, 'models', NETS[args.net][0],
                             'faster_rcnn_alt_opt', 'faster_rcnn_test.pt')
-    caffemodel = os.path.join(cfg.ROOT_DIR, 'data', 'faster_rcnn_models',
-                              NETS[args.demo_net][1])
+    caffeModel = os.path.join(cfg.ROOT_DIR, 'data', 'faster_rcnn_models',
+                              NETS[args.net][1])
 
-    if not os.path.isfile(caffemodel):
+    if not os.path.isfile(caffeModel):
         raise IOError(('{:s} not found.\nDid you run ./data/script/'
-                       'fetch_faster_rcnn_models.sh?').format(caffemodel))
+                       'fetch_faster_rcnn_models.sh?').format(caffeModel))
 
     if args.cpu_mode:
         caffe.set_mode_cpu()
     else:
         caffe.set_mode_gpu()
-        caffe.set_device(args.gpu_id)
-        cfg.GPU_ID = args.gpu_id
-    net = caffe.Net(prototxt, caffemodel, caffe.TEST)
+        caffe.set_device(args.gpu)
+        cfg.GPU_ID = args.gpu
 
-    print '\n\nLoaded network {:s}'.format(caffemodel)
+    net = caffe.Net(prototxt, caffeModel, caffe.TEST)
+    print '\n\nLoaded network {:s}'.format(caffeModel)
 
     # Warmup on a dummy image
     im = 128 * np.ones((300, 500, 3), dtype=np.uint8)
     for i in xrange(2):
         _, _ = im_detect(net, im)
 
-    # TODO: use files in given dir (os.walk)
-    im_names = ['000456.jpg', '000542.jpg', '001150.jpg',
-                '001763.jpg', '004545.jpg']
-    for im_name in im_names:
-        print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-        print 'Demo for data/demo/{}'.format(im_name)
-        demo(net, im_name)
+    #
+    # Classify the images
+    #
+    imageDir = args.testImageDir
 
-    plt.show()
+    # /im_names = ['000456.jpg', '000542.jpg', '001150.jpg', '001763.jpg', '004545.jpg']
+    for base, dirs, files in os.walk(imageDir):
+        for imageName in files:
+            if imageName.endswith(".jpg"):
+                print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+                print 'Demo for data/demo/{}'.format(imageName)
+                if len(dirs) > 0:
+                    imgPathName = os.path.join(base, dirs, imageName)
+                else:
+                    imgPathName = os.path.join(base, imageName)
+                demo(net, imgPathName)
+                plt.show()  # display windows and wait until all are closed
