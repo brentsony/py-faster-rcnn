@@ -18,11 +18,15 @@ from fast_rcnn.config import cfg
 from fast_rcnn.test import im_detect
 from fast_rcnn.nms_wrapper import nms
 from utils.timer import Timer
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as canvas
 import numpy as np
 import scipy.io as sio
 import caffe, os, sys, cv2
 import argparse
+from debug import debug
+
+SCORE_THRESHOLD = 0.6
+NMS_THRESHOLD = 0.3
 
 CLASSES = ('__background__',
            'animal:bear', 'animal:bird', 'animal:cat', 'animal:dog',
@@ -38,25 +42,24 @@ NETS = {
     'sonynet': ('SONYNET', 'SONYNET_faster_rcnn_final.caffemodel')
 }
 
-
-def vis_detections (im, class_name, dets, thresh=0.5):
+def vis_detections (im, class_name, dets, scoreThreshold=0.5):
     """Draw detected bounding boxes."""
-    inds = np.where(dets[:, -1] >= thresh)[0]
+    inds = np.where(dets[:, -1] >= scoreThreshold)[0]
     if len(inds) == 0:
         return
 
     im = im[:, :, (2, 1, 0)]
-    fig, ax = plt.subplots(figsize=(12, 12))
+    fig, ax = canvas.subplots(figsize=(12, 12))
     ax.imshow(im, aspect='equal')
     for i in inds:
         bbox = dets[i, :4]
         score = dets[i, -1]
 
         ax.add_patch(
-            plt.Rectangle((bbox[0], bbox[1]),
-                          bbox[2] - bbox[0],
-                          bbox[3] - bbox[1], fill=False,
-                          edgecolor='red', linewidth=3.5)
+            canvas.Rectangle((bbox[0], bbox[1]),
+                             bbox[2] - bbox[0],
+                             bbox[3] - bbox[1], fill=False,
+                             edgecolor='red', linewidth=3.5)
         )
         ax.text(bbox[0], bbox[1] - 2,
                 '{:s} {:.3f}'.format(class_name, score),
@@ -65,39 +68,74 @@ def vis_detections (im, class_name, dets, thresh=0.5):
 
     ax.set_title(('{} detections with '
                   'p({} | box) >= {:.1f}').format(class_name, class_name,
-                                                  thresh),
+                                                  scoreThreshold),
                  fontsize=14)
-    plt.axis('off')
-    plt.tight_layout()
-    plt.draw()
+    canvas.axis('off')
+    canvas.tight_layout()
+    canvas.draw()
 
 
 def demo (net, imagePathName):
     """Detect object classes in an image using pre-computed object proposals."""
-
     # Load the demo image
     im = cv2.imread(imagePathName)
 
     # Detect all object classes and regress object bounds
     timer = Timer()
     timer.tic()
+
     scores, boxes = im_detect(net, im)
+
     timer.toc()
-    print ('Detection took {:.3f}s for '
-           '{:d} object proposals').format(timer.total_time, boxes.shape[0])
+    debug('Object detection took {:.3f}s for {:d} object proposals'.format(timer.total_time, boxes.shape[0]))
 
     # Visualize detections for each class
-    CONF_THRESH = 0.6
-    NMS_THRESH = 0.3
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1  # because we skipped background
         cls_boxes = boxes[:, 4 * cls_ind:4 * (cls_ind + 1)]
         cls_scores = scores[:, cls_ind]
-        dets = np.hstack((cls_boxes,
-                          cls_scores[:, np.newaxis])).astype(np.float32)
-        keep = nms(dets, NMS_THRESH)
+        dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])).astype(np.float32)
+        keep = nms(dets, NMS_THRESHOLD)
         dets = dets[keep, :]
-        vis_detections(im, cls, dets, thresh=CONF_THRESH)
+        vis_detections(im, cls, dets, scoreThreshold=SCORE_THRESHOLD)
+
+
+def filterScoredRegions (scores, boxes, scoreThreshold):
+    """Reduce the given boxes to the relevant ones, and combine with label"""
+
+    for i, cls in enumerate(CLASSES[1:]):
+        i += 1  # because we skipped background
+        cls_boxes = boxes[:, 4 * i:4 * (i + 1)]
+        cls_scores = scores[:, i]
+        dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])).astype(np.float32)
+        keep = nms(dets, NMS_THRESHOLD)
+        dets = dets[keep, :]
+        dets = np.array(filter(lambda scoredBoxes: scoredBoxes[-1] > scoreThreshold, dets))
+        if len(dets) > 0:
+            filteredScores = dets[:, -1]
+            filteredBoxes = dets[:, 0:4]
+            yield (cls, zip(map(lambda p: int(100 * p), filteredScores), map(lambda xs: map(lambda x: int(x), xs), filteredBoxes)))
+
+
+def classify (imagePathName):
+    img = cv2.imread(imagePathName)
+    allScores, allBoxes = im_detect(net, img)  # returns scores + boxes for ALL candidate regions, R (where R > 100)
+    # scores: R x  K    array of object class scores (K includes background category 0)
+    # boxes:  R x (4*K) array of predicted bounding boxes
+
+    tagScoreBoxes = list()
+    for region in filterScoredRegions(allScores, allBoxes, .5):
+        #yield (region[0], region[1][0])
+        tagScoreBoxes.append((region[0], region[1][0]))
+
+    line = ";".join(map(lambda tagScoreBox: str(tagScoreBox), tagScoreBoxes))
+    print(line)
+
+    # for regions in zip(allBoxes, allScores):
+    #     boxes = map(lambda x: int(x), regions[0])
+    #     scores = map(lambda x: int(x*100), regions[1])
+    #     print('Scores: ' + str(scores))
+    #     print('Boxes: ' + str(boxes))
 
 
 def parse_args ():
@@ -106,13 +144,12 @@ def parse_args ():
     parser.add_argument('--gpu', dest='gpu', help='GPU device id to use [0]', default=1, type=int)
     parser.add_argument('--cpu', dest='cpu_mode', help='Use CPU mode (overrides --gpu)', action='store_true')
     parser.add_argument('--net', dest='net', help='Network to use [vgg16]', choices=NETS.keys(), default='sonynet')
-    parser.add_argument('--score', dest='testImageDir', help='score on given dir of test images', default='', type=str)
     parser.add_argument('--demo', dest='testImageDir', help='score on given dir of test images', default='', type=str)
+    parser.add_argument('--classify', dest='classifyImage', help='classify the given image', default='', type=str)
 
     args = parser.parse_args()
 
     return args
-
 
 if __name__ == '__main__':
     cfg.TEST.HAS_RPN = True  # Use RPN for proposals
@@ -139,7 +176,7 @@ if __name__ == '__main__':
         cfg.GPU_ID = args.gpu
 
     net = caffe.Net(prototxt, caffeModel, caffe.TEST)
-    print '\n\nLoaded network {:s}'.format(caffeModel)
+    debug('\n\nLoaded network {:s}'.format(caffeModel))
 
     # Warmup on a dummy image
     im = 128 * np.ones((300, 500, 3), dtype=np.uint8)
@@ -147,19 +184,22 @@ if __name__ == '__main__':
         _, _ = im_detect(net, im)
 
     #
-    # Classify the images
+    # Classify
     #
+    classifyImage = args.classifyImage
     imageDir = args.testImageDir
 
-    # /im_names = ['000456.jpg', '000542.jpg', '001150.jpg', '001763.jpg', '004545.jpg']
-    for base, dirs, files in os.walk(imageDir):
-        for imageName in files:
-            if imageName.endswith(".jpg"):
-                print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-                print 'Demo for data/demo/{}'.format(imageName)
-                if len(dirs) > 0:
-                    imgPathName = os.path.join(base, dirs, imageName)
-                else:
-                    imgPathName = os.path.join(base, imageName)
-                demo(net, imgPathName)
-                plt.show()  # display windows and wait until all are closed
+    if len(classifyImage) > 0:
+        classify(classifyImage)
+    elif len(imageDir) > 0:
+        # /im_names = ['000456.jpg', '000542.jpg', '001150.jpg', '001763.jpg', '004545.jpg']
+        for base, dirs, files in os.walk(imageDir):
+            for imageName in files:
+                if imageName.endswith(".jpg"):
+                    if len(dirs) > 0:
+                        imgPathName = os.path.join(base, dirs, imageName)
+                    else:
+                        imgPathName = os.path.join(base, imageName)
+                    demo(net, imgPathName)
+                    canvas.show()  # display windows and wait until all are closed
+
