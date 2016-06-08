@@ -18,7 +18,7 @@ from fast_rcnn.nms_wrapper import nms
 import cPickle
 from utils.blob import im_list_to_blob
 import os
-from debug import debug
+from utils.debug import debug
 
 
 def _get_image_blob(im):

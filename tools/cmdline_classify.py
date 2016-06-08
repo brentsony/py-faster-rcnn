@@ -14,16 +14,19 @@ See README.md for installation instructions before running.
 """
 
 import _init_paths
-from fast_rcnn.config import cfg
-from fast_rcnn.test import im_detect
-from fast_rcnn.nms_wrapper import nms
-from utils.timer import Timer
+import argparse
+
+import caffe
+import cv2
 import matplotlib.pyplot as canvas
 import numpy as np
-import scipy.io as sio
-import caffe, os, sys, cv2
-import argparse
-from debug import debug
+import os
+
+from fast_rcnn.config import cfg
+from fast_rcnn.nms_wrapper import nms
+from fast_rcnn.test import im_detect
+from utils.debug import debug
+from utils.timer import Timer
 
 SCORE_THRESHOLD = 0.6
 NMS_THRESHOLD = 0.3
@@ -128,14 +131,15 @@ def classify (imagePathName):
         #yield (region[0], region[1][0])
         tagScoreBoxes.append((region[0], region[1][0]))
 
-    line = ";".join(map(lambda tagScoreBox: str(tagScoreBox), tagScoreBoxes))
-    print(line)
+    def formatResult (tagScoreBox):
+        label = tagScoreBox[0]                          # category name
+        box = ','.join(map(str, tagScoreBox[1][1]))     # comma-separated coords (left, top, right, bottom)
+        score = tagScoreBox[1][0]                       # integral percentage (0-100)
+        return '/'.join(map(str, [label, box, score]))  # slash-separated values
 
-    # for regions in zip(allBoxes, allScores):
-    #     boxes = map(lambda x: int(x), regions[0])
-    #     scores = map(lambda x: int(x*100), regions[1])
-    #     print('Scores: ' + str(scores))
-    #     print('Boxes: ' + str(boxes))
+    cmdOutput = ";".join(map(formatResult, tagScoreBoxes))   # semicolon-separated entries, highest scores first
+
+    print(cmdOutput)  # send to STDOUT
 
 
 def parse_args ():
