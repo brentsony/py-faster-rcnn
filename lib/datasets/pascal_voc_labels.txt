@@ -4,7 +4,6 @@ cat
 dog
 cow
 elephant
-giraffe
 horse
 snake
 sheep
@@ -15,8 +14,7 @@ bicycle
 boat
 bus
 car
-golf cart
+golfcart
 motorcycle
 train
-truck
 wine bottle

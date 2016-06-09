@@ -207,7 +207,7 @@ if __name__ == '__main__':
         if (classifyArg.endswith('.txt')):
             with open(classifyArg) as imageNames:
                 for imageFile in imageNames:
-                    debug('Classifying ' + imageFile)
+                    # debug('Classifying ' + imageFile)
                     classify(imageFile.strip())     # remove trailing \n
         else:
             classify(classifyArg)       # assume single arg is an image
@@ -216,10 +216,7 @@ if __name__ == '__main__':
         for base, dirs, files in os.walk(imageDir):
             for imageName in files:
                 if imageName.endswith(".jpg"):
-                    if len(dirs) > 0:
-                        imgPathName = os.path.join(base, dirs, imageName)
-                    else:
-                        imgPathName = os.path.join(base, imageName)
+                    imgPathName = os.path.join(base, imageName)
                     demo(net, imgPathName)
                     canvas.show()  # display windows and wait until all are closed
 
