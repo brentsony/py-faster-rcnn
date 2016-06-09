@@ -1,0 +1,22 @@
+bear
+bird
+cat
+dog
+cow
+elephant
+giraffe
+horse
+snake
+sheep
+zebra
+person
+airplane
+bicycle
+boat
+bus
+car
+golf cart
+motorcycle
+train
+truck
+wine bottle

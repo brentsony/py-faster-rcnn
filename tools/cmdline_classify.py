@@ -25,19 +25,21 @@ import os
 from fast_rcnn.config import cfg
 from fast_rcnn.nms_wrapper import nms
 from fast_rcnn.test import im_detect
+from utils.file import readLines
 from utils.debug import debug
 from utils.timer import Timer
 
 SCORE_THRESHOLD = 0.6
 NMS_THRESHOLD = 0.3
 
-CLASSES = ('__background__',
-           'animal:bear', 'animal:bird', 'animal:cat', 'animal:dog',
-           'animal:cow', 'animal:elephant', 'animal:giraffe', 'animal:horse',
-           'animal:snake', 'animal:sheep', 'animal:zebra', 'person',
-           'vehicle:airplane', 'vehicle:bicycle', 'vehicle:boat', 'vehicle:bus',
-           'vehicle:car', 'vehicle:golf cart', 'vehicle:motorcycle', 'vehicle:train',
-           'vehicle:truck', 'winebottle')
+# FIXME: specify model (or labels file in cfg)
+CLASSES = ['__background__'] + readLines('/opt/dev/proj/sony/research/py-faster-rcnn/lib/datasets/pascal_voc_labels.txt')
+
+#CLASSES = ('__background__',   # always index 0
+#           'animal:bear', 'animal:bird', 'animal:cat', 'animal:dog', 'animal:cow', 'animal:elephant', 'animal:giraffe', 'animal:horse', 'animal:snake', 'animal:sheep', 'animal:zebra',
+#           'person',
+#           'vehicle:airplane', 'vehicle:bicycle', 'vehicle:boat', 'vehicle:bus', 'vehicle:car', 'vehicle:golf cart', 'vehicle:motorcycle', 'vehicle:train', 'vehicle:truck',
+#           'wine bottle')
 
 NETS = {
     'vgg16': ('VGG16', 'VGG16_faster_rcnn_final.caffemodel'),
@@ -149,7 +151,8 @@ def parse_args ():
     parser.add_argument('--cpu', dest='cpu_mode', help='Use CPU mode (overrides --gpu)', action='store_true')
     parser.add_argument('--net', dest='net', help='Network to use [vgg16]', choices=NETS.keys(), default='sonynet')
     parser.add_argument('--demo', dest='testImageDir', help='score on given dir of test images', default='', type=str)
-    parser.add_argument('--classify', dest='classifyImage', help='classify the given image', default='', type=str)
+    parser.add_argument('--classify', dest='classifyArg', help='classify the given image', default='', type=str)
+    parser.add_argument('--labelfile', dest='labelFile', help='return the filename containing the classifier labels (one per line)', default='', type=str)
 
     args = parser.parse_args()
 
@@ -190,13 +193,19 @@ if __name__ == '__main__':
     #
     # Classify
     #
-    classifyImage = args.classifyImage
+    classifyArg = args.classifyArg
     imageDir = args.testImageDir
 
-    if len(classifyImage) > 0:
-        classify(classifyImage)
+    if len(classifyArg) > 0:
+        if (classifyArg.endswith('.txt')):
+            with open(classifyArg) as imageNames:
+                for imageFile in imageNames:
+                    debug('Classifying ' + imageFile)
+                    classify(imageFile.strip())     # remove trailing \n
+        else:
+            classify(classifyArg)       # assume single arg is an image
+
     elif len(imageDir) > 0:
-        # /im_names = ['000456.jpg', '000542.jpg', '001150.jpg', '001763.jpg', '004545.jpg']
         for base, dirs, files in os.walk(imageDir):
             for imageName in files:
                 if imageName.endswith(".jpg"):

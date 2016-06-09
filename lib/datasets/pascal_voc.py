@@ -19,6 +19,10 @@ import uuid
 from voc_eval import voc_eval
 from fast_rcnn.config import cfg
 
+def readLines (pathName):       # Brent
+    with open(pathName) as lines:
+        return map(lambda line: line.strip(), lines)
+
 class pascal_voc(imdb):
     def __init__(self, image_set, year, devkit_path=None):
         imdb.__init__(self, 'voc_' + year + '_' + image_set)
@@ -27,30 +31,9 @@ class pascal_voc(imdb):
         self._devkit_path = self._get_default_path() if devkit_path is None \
                             else devkit_path
         self._data_path = os.path.join(self._devkit_path, 'VOC' + self._year)
-        self._classes = ('__background__'   # always index 0
-        , 'bear'
-        , 'bird'
-        , 'cat'
-        , 'dog'
-        , 'cow'
-        , 'elephant'
-        , 'giraffe'
-        , 'horse'
-        , 'snake'
-        , 'sheep'
-        , 'zebra'
-        , 'person'
-        , 'airplane'
-        , 'bicycle'
-        , 'boat'
-        , 'bus'
-        , 'car'
-        , 'golf cart'
-        , 'motorcycle'
-        , 'train'
-        , 'truck'
-        , 'wine bottle'
-        )
+        # Brent (2016/06/08) - read from file (rather than hard-coded here and in classification script)
+        # FIXME: specify model (or labels file in cfg)
+        self._classes = ['__background__'] + readLines('/opt/dev/proj/sony/research/py-faster-rcnn/lib/datasets/pascal_voc_labels.txt')
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_ext = '.jpg'
         self._image_index = self._load_image_set_index()
