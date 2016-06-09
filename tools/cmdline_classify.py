@@ -137,7 +137,7 @@ def classify (imagePathName):
         label = tagScoreBox[0]                          # category name
         box = ','.join(map(str, tagScoreBox[1][1]))     # comma-separated coords (left, top, right, bottom)
         score = tagScoreBox[1][0]                       # integral percentage (0-100)
-        return '/'.join(map(str, [label, box, score]))  # slash-separated values
+        return '/'.join(map(str, [label, score, box]))  # slash-separated values
 
     cmdOutput = ";".join(map(formatResult, tagScoreBoxes))   # semicolon-separated entries, highest scores first
 
@@ -152,7 +152,7 @@ def parse_args ():
     parser.add_argument('--net', dest='net', help='Network to use [vgg16]', choices=NETS.keys(), default='sonynet')
     parser.add_argument('--demo', dest='testImageDir', help='score on given dir of test images', default='', type=str)
     parser.add_argument('--classify', dest='classifyArg', help='classify the given image', default='', type=str)
-    parser.add_argument('--labelfile', dest='labelFile', help='return the filename containing the classifier labels (one per line)', default='', type=str)
+    parser.add_argument('--labelfile', action='store_true', help='return the filename containing the classifier labels (one per line)', default=False)
 
     args = parser.parse_args()
 
@@ -162,6 +162,13 @@ if __name__ == '__main__':
     cfg.TEST.HAS_RPN = True  # Use RPN for proposals
 
     args = parse_args()
+
+    #
+    # Non-Caffe options
+    #
+    if args.labelfile > 0:
+        print "/opt/dev/proj/sony/research/py-faster-rcnn/lib/datasets/pascal_voc_labels.txt"
+        exit
 
     #
     # Caffe Setup
