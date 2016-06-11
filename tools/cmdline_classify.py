@@ -35,12 +35,6 @@ NMS_THRESHOLD = 0.3
 # FIXME: specify model (or labels file in cfg)
 CLASSES = ['__background__'] + readLines('/opt/dev/proj/sony/research/py-faster-rcnn/lib/datasets/pascal_voc_labels.txt')
 
-#CLASSES = ('__background__',   # always index 0
-#           'animal:bear', 'animal:bird', 'animal:cat', 'animal:dog', 'animal:cow', 'animal:elephant', 'animal:giraffe', 'animal:horse', 'animal:snake', 'animal:sheep', 'animal:zebra',
-#           'person',
-#           'vehicle:airplane', 'vehicle:bicycle', 'vehicle:boat', 'vehicle:bus', 'vehicle:car', 'vehicle:golf cart', 'vehicle:motorcycle', 'vehicle:train', 'vehicle:truck',
-#           'wine bottle')
-
 NETS = {
     'vgg16': ('VGG16', 'VGG16_faster_rcnn_final.caffemodel'),
     'zf': ('ZF', 'ZF_faster_rcnn_final.caffemodel'),
