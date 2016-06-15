@@ -33,13 +33,13 @@ SCORE_THRESHOLD = 0.6
 NMS_THRESHOLD = 0.3
 
 # FIXME: specify model (or labels file in cfg)
-CLASSES = ['__background__'] + readLines('/opt/dev/proj/sony/research/py-faster-rcnn/lib/datasets/pascal_voc_labels.txt')
-
 NETS = {
     'vgg16': ('VGG16', 'VGG16_faster_rcnn_final.caffemodel'),
     'zf': ('ZF', 'ZF_faster_rcnn_final.caffemodel'),
-    'sonynet': ('SONYNET', 'SONYNET_faster_rcnn_final.caffemodel')
+    'sonynet': ('sonynet', 'sonynet_faster_rcnn_final.caffemodel')
 }
+CLASSES = ['__background__'] + readLines('/opt/dev/proj/sony/research/py-faster-rcnn/lib/datasets/pascal_voc_labels.txt')
+
 
 def vis_detections (im, class_name, dets, scoreThreshold=0.5):
     """Draw detected bounding boxes."""
@@ -116,8 +116,12 @@ def filterScoredRegions (scores, boxes, scoreThreshold):
             yield (cls, zip(map(lambda p: int(100 * p), filteredScores), map(lambda xs: map(lambda x: int(x), xs), filteredBoxes)))
 
 
-def classify (imagePathName):
+def classify (net, imagePathName):
     img = cv2.imread(imagePathName)
+    if img is None:
+        debug('Image does not exist: ' + imagePathName)
+        return
+
     allScores, allBoxes = im_detect(net, img)  # returns scores + boxes for ALL candidate regions, R (where R > 100)
     # scores: R x  K    array of object class scores (K includes background category 0)
     # boxes:  R x (4*K) array of predicted bounding boxes
@@ -152,7 +156,8 @@ def parse_args ():
 
     return args
 
-if __name__ == '__main__':
+
+def main (argv=None):
     cfg.TEST.HAS_RPN = True  # Use RPN for proposals
 
     args = parse_args()
@@ -162,7 +167,7 @@ if __name__ == '__main__':
     #
     if args.labelfile > 0:
         print "/opt/dev/proj/sony/research/py-faster-rcnn/lib/datasets/pascal_voc_labels.txt"
-        exit
+        return 0
 
     #
     # Caffe Setup
@@ -202,9 +207,9 @@ if __name__ == '__main__':
             with open(classifyArg) as imageNames:
                 for imageFile in imageNames:
                     # debug('Classifying ' + imageFile)
-                    classify(imageFile.strip())     # remove trailing \n
+                    classify(net, imageFile.strip())     # remove trailing \n
         else:
-            classify(classifyArg)       # assume single arg is an image
+            classify(net, classifyArg)       # assume single arg is an image
 
     elif len(imageDir) > 0:
         for base, dirs, files in os.walk(imageDir):
@@ -213,4 +218,10 @@ if __name__ == '__main__':
                     imgPathName = os.path.join(base, imageName)
                     demo(net, imgPathName)
                     canvas.show()  # display windows and wait until all are closed
+
+    return 0
+
+import sys
+if __name__ == '__main__':
+    sys.exit(main())
 
