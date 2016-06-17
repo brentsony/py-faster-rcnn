@@ -29,7 +29,7 @@ from utils.file import readLines
 from utils.debug import debug
 from utils.timer import Timer
 
-SCORE_THRESHOLD = 0.6
+SCORE_THRESHOLD = 0.7
 NMS_THRESHOLD = 0.3
 
 # FIXME: specify model (or labels file in cfg)
@@ -41,7 +41,7 @@ NETS = {
 CLASSES = ['__background__'] + readLines('/opt/dev/proj/sony/research/py-faster-rcnn/lib/datasets/pascal_voc_labels.txt')
 
 
-def vis_detections (im, class_name, dets, scoreThreshold=0.5):
+def vis_detections (im, class_name, dets, scoreThreshold=0.6):
     """Draw detected bounding boxes."""
     inds = np.where(dets[:, -1] >= scoreThreshold)[0]
     if len(inds) == 0:
@@ -89,10 +89,10 @@ def demo (net, imagePathName):
     debug('Object detection took {:.3f}s for {:d} object proposals'.format(timer.total_time, boxes.shape[0]))
 
     # Visualize detections for each class
-    for cls_ind, cls in enumerate(CLASSES[1:]):
-        cls_ind += 1  # because we skipped background
-        cls_boxes = boxes[:, 4 * cls_ind:4 * (cls_ind + 1)]
-        cls_scores = scores[:, cls_ind]
+    for i, cls in enumerate(CLASSES[1:]):
+        i += 1  # because we skipped background
+        cls_boxes = boxes[:, 4 * i:4 * (i + 1)]
+        cls_scores = scores[:, i]
         dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])).astype(np.float32)
         keep = nms(dets, NMS_THRESHOLD)
         dets = dets[keep, :]
@@ -105,7 +105,7 @@ def filterScoredRegions (scores, boxes, scoreThreshold):
     for i, cls in enumerate(CLASSES[1:]):
         i += 1  # because we skipped background
         cls_boxes = boxes[:, 4 * i:4 * (i + 1)]
-        cls_scores = scores[:, i]
+        cls_scores = scores[:, i]       # take only scores for this class
         dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])).astype(np.float32)
         keep = nms(dets, NMS_THRESHOLD)
         dets = dets[keep, :]
@@ -127,15 +127,14 @@ def classify (net, imagePathName):
     # boxes:  R x (4*K) array of predicted bounding boxes
 
     tagScoreBoxes = list()
-    for region in filterScoredRegions(allScores, allBoxes, .5):
-        #yield (region[0], region[1][0])
+    for region in filterScoredRegions(allScores, allBoxes, SCORE_THRESHOLD):
         tagScoreBoxes.append((region[0], region[1][0]))
 
     def formatResult (tagScoreBox):
         label = tagScoreBox[0]                          # category name
         box = ','.join(map(str, tagScoreBox[1][1]))     # comma-separated coords (left, top, right, bottom)
         score = tagScoreBox[1][0]                       # integral percentage (0-100)
-        return '/'.join(map(str, [label, score, box]))  # slash-separated values
+        return '/'.join(map(str, [label, score, box]))  # slash-separated fields
 
     cmdOutput = ";".join(map(formatResult, tagScoreBoxes))   # semicolon-separated entries, highest scores first
 
@@ -149,10 +148,13 @@ def parse_args ():
     parser.add_argument('--cpu', dest='cpu_mode', help='Use CPU mode (overrides --gpu)', action='store_true')
     parser.add_argument('--net', dest='net', help='Network to use [vgg16]', choices=NETS.keys(), default='sonynet')
     parser.add_argument('--demo', dest='testImageDir', help='score on given dir of test images', default='', type=str)
-    parser.add_argument('--classify', dest='classifyArg', help='classify the given image', default='', type=str)
+    parser.add_argument('--classify', dest='classifyArg', help='classify the given image', type=str)
     parser.add_argument('--labelfile', action='store_true', help='return the filename containing the classifier labels (one per line)', default=False)
 
-    args = parser.parse_args()
+    #args = parser.parse_args()
+    args, restOfArgs = parser.parse_known_args()
+    if args.classifyArg is None and len(restOfArgs) > 0:
+        args.classifyArg = restOfArgs[0]
 
     return args
 
@@ -165,7 +167,7 @@ def main (argv=None):
     #
     # Non-Caffe options
     #
-    if args.labelfile > 0:
+    if args.labelfile > 0:  # return the labels file
         print "/opt/dev/proj/sony/research/py-faster-rcnn/lib/datasets/pascal_voc_labels.txt"
         return 0
 
