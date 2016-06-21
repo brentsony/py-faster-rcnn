@@ -36,12 +36,12 @@ NMS_THRESHOLD = 0.3
 NETS = {
     'vgg16': ('VGG16', 'VGG16_faster_rcnn_final.caffemodel'),
     'zf': ('ZF', 'ZF_faster_rcnn_final.caffemodel'),
-    'sonynet': ('sonynet', 'sonynet_faster_rcnn_final.caffemodel')
+    'sonynet': ('sonynet', 'sonynet_faster_rcnn_final_VGG16.caffemodel')
 }
 CLASSES = ['__background__'] + readLines('/opt/dev/proj/sony/research/py-faster-rcnn/lib/datasets/pascal_voc_labels.txt')
 
 
-def vis_detections (im, class_name, dets, scoreThreshold=0.6):
+def vis_detections (im, class_name, imageName, dets, scoreThreshold=0.6):
     """Draw detected bounding boxes."""
     inds = np.where(dets[:, -1] >= scoreThreshold)[0]
     if len(inds) == 0:
@@ -65,10 +65,7 @@ def vis_detections (im, class_name, dets, scoreThreshold=0.6):
                 bbox=dict(facecolor='blue', alpha=0.5),
                 fontsize=14, color='white')
 
-    ax.set_title(('{} detections with '
-                  'p({} | box) >= {:.1f}').format(class_name, class_name,
-                                                  scoreThreshold),
-                 fontsize=14)
+    ax.set_title(('{} >= {:.1f} {}').format(class_name, scoreThreshold, imageName), fontsize=16)
     canvas.axis('off')
     canvas.tight_layout()
     canvas.draw()
@@ -89,6 +86,9 @@ def demo (net, imagePathName):
     debug('Object detection took {:.3f}s for {:d} object proposals'.format(timer.total_time, boxes.shape[0]))
 
     # Visualize detections for each class
+    path, imageFilename = os.path.split(imagePathName)
+    catDir = os.path.split(path)[-1]
+    imageName = catDir + '/' + imageFilename
     for i, cls in enumerate(CLASSES[1:]):
         i += 1  # because we skipped background
         cls_boxes = boxes[:, 4 * i:4 * (i + 1)]
@@ -96,7 +96,7 @@ def demo (net, imagePathName):
         dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])).astype(np.float32)
         keep = nms(dets, NMS_THRESHOLD)
         dets = dets[keep, :]
-        vis_detections(im, cls, dets, scoreThreshold=SCORE_THRESHOLD)
+        vis_detections(im, cls, imageName, dets, scoreThreshold=SCORE_THRESHOLD)
 
 
 def filterScoredRegions (scores, boxes, scoreThreshold):
@@ -204,7 +204,7 @@ def main (argv=None):
     classifyArg = args.classifyArg
     imageDir = args.testImageDir
 
-    if len(classifyArg) > 0:
+    if classifyArg is not None and len(classifyArg) > 0:
         if (classifyArg.endswith('.txt')):
             with open(classifyArg) as imageNames:
                 for imageFile in imageNames:
