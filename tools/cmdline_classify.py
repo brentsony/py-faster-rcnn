@@ -143,7 +143,7 @@ def classify (net, imagePathName):
 
 def parse_args ():
     """Parse input arguments."""
-    parser = argparse.ArgumentParser(description='Faster R-CNN demo')
+    parser = argparse.ArgumentParser(description='SonyNet on Faster R-CNN')
     parser.add_argument('--gpu', dest='gpu', help='GPU device id to use [0]', default=1, type=int)
     parser.add_argument('--cpu', dest='cpu_mode', help='Use CPU mode (overrides --gpu)', action='store_true')
     parser.add_argument('--net', dest='net', help='Network to use [vgg16]', choices=NETS.keys(), default='sonynet')
