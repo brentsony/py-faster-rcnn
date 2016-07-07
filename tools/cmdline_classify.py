@@ -29,7 +29,6 @@ from utils.file import readLines
 from utils.debug import debug
 from utils.timer import Timer
 
-SCORE_THRESHOLD = 0.7
 NMS_THRESHOLD = 0.3
 
 # FIXME: specify model (or labels file in cfg)
@@ -71,7 +70,7 @@ def vis_detections (im, class_name, imageName, dets, scoreThreshold=0.6):
     canvas.draw()
 
 
-def demo (net, imagePathName):
+def demo (net, imagePathName, scoreThreshold):
     """Detect object classes in an image using pre-computed object proposals."""
     # Load the demo image
     im = cv2.imread(imagePathName)
@@ -96,7 +95,7 @@ def demo (net, imagePathName):
         dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])).astype(np.float32)
         keep = nms(dets, NMS_THRESHOLD)
         dets = dets[keep, :]
-        vis_detections(im, cls, imageName, dets, scoreThreshold=SCORE_THRESHOLD)
+        vis_detections(im, cls, imageName, dets, scoreThreshold)
 
 
 def filterScoredRegions (scores, boxes, scoreThreshold):
@@ -116,7 +115,7 @@ def filterScoredRegions (scores, boxes, scoreThreshold):
             yield (cls, zip(map(lambda p: int(100 * p), filteredScores), map(lambda xs: map(lambda x: int(x), xs), filteredBoxes)))
 
 
-def classify (net, imagePathName):
+def classify (net, imagePathName, scoreThreshold):
     img = cv2.imread(imagePathName)
     if img is None:
         debug('Image does not exist: ' + imagePathName)
@@ -127,7 +126,7 @@ def classify (net, imagePathName):
     # boxes:  R x (4*K) array of predicted bounding boxes
 
     tagScoreBoxes = list()
-    for region in filterScoredRegions(allScores, allBoxes, SCORE_THRESHOLD):
+    for region in filterScoredRegions(allScores, allBoxes, scoreThreshold):
         tagScoreBoxes.append((region[0], region[1][0]))
 
     def formatResult (tagScoreBox):
@@ -150,6 +149,7 @@ def parse_args ():
     parser.add_argument('--demo', dest='testImageDir', help='score on given dir of test images', default='', type=str)
     parser.add_argument('--classify', dest='classifyArg', help='classify the given image', type=str)
     parser.add_argument('--labelfile', action='store_true', help='return the filename containing the classifier labels (one per line)', default=False)
+    parser.add_argument('--threshold', dest='threshold', help='the lowest score to accept (0-1.0)', default=0.60, type=float)
 
     #args = parser.parse_args()
     args, restOfArgs = parser.parse_known_args()
@@ -203,22 +203,23 @@ def main (argv=None):
     #
     classifyArg = args.classifyArg
     imageDir = args.testImageDir
+    scoreThreshold = args.threshold
 
     if classifyArg is not None and len(classifyArg) > 0:
         if (classifyArg.endswith('.txt')):
             with open(classifyArg) as imageNames:
                 for imageFile in imageNames:
                     # debug('Classifying ' + imageFile)
-                    classify(net, imageFile.strip())     # remove trailing \n
+                    classify(net, imageFile.strip(), scoreThreshold)     # remove trailing \n
         else:
-            classify(net, classifyArg)       # assume single arg is an image
+            classify(net, classifyArg, scoreThreshold)       # assume single arg is an image
 
     elif len(imageDir) > 0:
         for base, dirs, files in os.walk(imageDir):
             for imageName in files:
                 if imageName.endswith(".jpg"):
                     imgPathName = os.path.join(base, imageName)
-                    demo(net, imgPathName)
+                    demo(net, imgPathName, scoreThreshold)
                     canvas.show()  # display windows and wait until all are closed
 
     return 0
